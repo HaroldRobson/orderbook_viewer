@@ -13,6 +13,7 @@ polars = { version = "0.41", features = [
   "lazy",
   "parquet",
   "temporal",
+  "streaming",
   "rank",
   "dtype-datetime",
   "dtype-categorical",

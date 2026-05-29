@@ -5,6 +5,7 @@ use crate::timerange_picker;
 use chrono::DateTime;
 use chrono::NaiveTime;
 use eframe::egui;
+use eframe::egui::{Color32, RichText, Ui};
 use egui_file_dialog::FileDialog;
 use polars::prelude::*;
 use std::fs::File;
@@ -78,7 +79,6 @@ impl eframe::App for App {
                                 .unwrap();
 
                             self.is_processing = false;
-                            self.show_graph = true;
                         }
                         Err(e) => eprintln!("{:?}", e),
                     }
@@ -111,6 +111,7 @@ impl eframe::App for App {
                         .unwrap()
                         .max()
                         .unwrap();
+                    self.show_graph = true;
                 }
             }
 
@@ -120,35 +121,31 @@ impl eframe::App for App {
                     ui.label("Processing data, please wait...");
                 });
             }
-            if ui
-                .add_sized(
-                    [800.0, 1.0],
-                    egui::Slider::new(&mut self.group_id, 0..=self.max_group_id).text("My value"),
-                )
-                .changed()
-            {
-                let e = self.remake_bars(self.group_id);
-                match e {
-                    Err(e) => eprintln!("{:?}", e),
-                    Ok(_) => {}
-                }
-            }
-            /*
-                        if ui.button("draw").clicked() {
-                            self.show_graph = true;
-                        }
-
-                        if ui.button("redraw").clicked() {
-                            let e = self.remake_bars(3);
-                            match e {
-                                Err(e) => eprintln!("{:?}", e),
-                                Ok(_) => {}
-                            }
-                            self.histogram.show_plot(ui);
-                        }
-            */
 
             if self.show_graph {
+                if ui
+                    .add_sized(
+                        [ui.available_width(), 20.0],
+                        egui::Slider::new(&mut self.group_id, 0..=self.max_group_id)
+                            .text("My value"),
+                    )
+                    .changed()
+                {
+                    let e = self.remake_bars(self.group_id);
+                    match e {
+                        Err(e) => eprintln!("{:?}", e),
+                        Ok(_) => {}
+                    }
+                }
+                let formatted = self
+                    .current_orderbook_timestamp
+                    .format("%Y-%m-%d %H:%M:%S%.6f")
+                    .to_string();
+                ui.label(
+                    RichText::new(formatted)
+                        .monospace()
+                        .color(ui.visuals().strong_text_color()),
+                );
                 self.histogram.show_controls(ui);
                 self.histogram.show_plot(ui);
             }

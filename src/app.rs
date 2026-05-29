@@ -9,7 +9,7 @@ use std::path::PathBuf;
 pub struct App {
     pub file_dialog: FileDialog,
     pub picked_file: Option<PathBuf>,
-    pub main_df: Option<polars::prelude::DataFrame>,
+    pub main_lf: Option<polars::prelude::LazyFrame>,
     pub data: Option<polars::prelude::DataFrame>,
     pub histogram: HistogramExample,
     pub show_graph: bool,
@@ -18,6 +18,7 @@ pub struct App {
     pub end_time: DateTime<Utc>,
     pub group_id: u32,
     pub max_group_id: u32,
+    pub current_orderbook_timestamp: DateTime<Utc>,
 }
 
 impl App {
@@ -26,15 +27,16 @@ impl App {
         Self {
             file_dialog: FileDialog::new(),
             picked_file: None,
-            main_df: None,
+            main_lf: None,
             data: None,
             show_graph: false,
             is_processing: false,
             start_time: time.clone(),
-            end_time: time,
+            end_time: time.clone(),
             histogram: HistogramExample::default(),
             group_id: 0,
             max_group_id: 20,
+            current_orderbook_timestamp: time,
         }
     }
     pub fn remake_bars(&mut self, group_id: u32) -> Result<(), PolarsError> {
@@ -66,6 +68,16 @@ impl App {
             })
             .collect();
         self.histogram.bars = bars;
+        self.current_orderbook_timestamp = DateTime::from_timestamp_micros(
+            filtered_df
+                .column("timestamp")
+                .unwrap()
+                .i64()
+                .unwrap()
+                .get(0)
+                .unwrap(),
+        )
+        .unwrap();
         Ok(())
     }
 }

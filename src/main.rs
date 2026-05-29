@@ -8,7 +8,7 @@ pub mod graphs;
 pub mod timerange_picker;
 use app::App;
 
-mod file_picker;
+mod view;
 
 pub mod processor;
 

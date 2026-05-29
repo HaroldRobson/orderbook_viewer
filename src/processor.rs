@@ -6,7 +6,7 @@ use anyhow::{Context, Result};
 use std::path::Path;
 use std::path::PathBuf;
 
-pub fn process_file<'a>(file_path: &'a Path) -> Result<DataFrame, PolarsError> {
+pub fn process_file<'a>(file_path: &'a Path) -> Result<LazyFrame, PolarsError> {
     println!("began processing file");
     let lf = LazyFrame::scan_parquet(file_path, ScanArgsParquet::default())?;
 
@@ -17,10 +17,9 @@ pub fn process_file<'a>(file_path: &'a Path) -> Result<DataFrame, PolarsError> {
             col("price").cast(DataType::Float64),
             col("amount").cast(DataType::Float64),
         ])
-        .sort(["timestamp"], SortMultipleOptions::default())
         .with_column(
             when(col("side").eq(lit("bid")).or(col("side").eq(lit("Bid"))))
-                .then(true)
+                .then(lit("green"))
                 .otherwise(lit("red"))
                 .alias("color"),
         )
@@ -31,7 +30,7 @@ pub fn process_file<'a>(file_path: &'a Path) -> Result<DataFrame, PolarsError> {
         )
         .with_column(col("timestamp").rle_id().alias("group_id"));
     println!("reached1");
-    lf.collect()
+    Ok(lf)
 
     //    processed_lf.sink_parquet(&output_path, ParquetWriteOptions::default())?;
 }
