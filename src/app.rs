@@ -28,13 +28,31 @@ impl App {
         }
     }
     pub fn remake_bars(&mut self, group_id: u32) -> Result<(), PolarsError> {
+        let my_lit = lit(group_id);
+        println!("Literal type: {:?}", my_lit);
+
+        let sample = self
+            .data
+            .as_ref()
+            .unwrap()
+            .clone()
+            .column("group_id")?
+            .u32()?
+            .get(0);
+        println!("Sample value from column: {:?}", sample);
+        println!("Target group_id: {:?}", group_id);
+
         let filtered_df = self
             .data
             .as_ref()
             .unwrap()
             .clone()
             .lazy()
-            .filter(col("group_id").eq(group_id))
+            .filter(
+                col("group_id")
+                    .cast(DataType::UInt32)
+                    .eq(lit(group_id as u32)),
+            )
             .collect()?;
         dbg!(self.data.as_ref().unwrap().schema());
         dbg!(self.data.as_ref().unwrap().column("group_id")?.unique()?);
@@ -61,8 +79,7 @@ impl App {
             .map(|((p, s), c)| {
                 let fill = match c {
                     "red" => egui::Color32::RED,
-                    "green" => egui::Color32::GREEN,
-                    _ => egui::Color32::BLUE,
+                    _ => egui::Color32::GREEN,
                 };
                 Bar::new(p, s).fill(fill)
             })

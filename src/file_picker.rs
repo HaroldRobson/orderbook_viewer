@@ -1,10 +1,11 @@
-use std::path::PathBuf;
-
 use crate::app::App;
 use crate::graphs::HistogramExample;
 use crate::processor::process_file;
 use eframe::egui;
 use egui_file_dialog::FileDialog;
+use polars::prelude::*;
+use std::fs::File;
+use std::path::PathBuf;
 
 impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
@@ -23,6 +24,10 @@ impl eframe::App for App {
                     let result = process_file(path);
                     match result {
                         Ok(res) => {
+                            let mut file = File::create("processed_output.parquet").unwrap();
+                            ParquetWriter::new(&mut file)
+                                .finish(&mut res.clone())
+                                .unwrap();
                             self.data = Some(res);
                             self.is_processing = false;
                         }
@@ -38,7 +43,10 @@ impl eframe::App for App {
                 });
             }
             if ui
-                .add(egui::Slider::new(&mut self.group_id, 0..=10000).text("My value"))
+                .add_sized(
+                    [800.0, 1.0],
+                    egui::Slider::new(&mut self.group_id, 0..=1000).text("My value"),
+                )
                 .changed()
             {
                 let e = self.remake_bars(self.group_id);

@@ -29,18 +29,7 @@ pub fn process_file<'a>(file_path: &'a Path) -> Result<DataFrame, PolarsError> {
                 .cast(DataType::Datetime(TimeUnit::Milliseconds, None))
                 .alias("datetime"),
         )
-        .with_column(
-            col("timestamp")
-                .rank(
-                    RankOptions {
-                        method: RankMethod::Dense,
-                        descending: false,
-                    },
-                    None,
-                )
-                .over(["timestamp"])
-                .alias("group_id"),
-        );
+        .with_column(col("timestamp").rle_id().alias("group_id"));
     println!("reached1");
     lf.collect()
 
