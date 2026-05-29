@@ -1,4 +1,5 @@
 use crate::graphs::HistogramExample;
+use chrono::{DateTime, Utc};
 use eframe::egui;
 use egui_file_dialog::FileDialog;
 use egui_plot::Bar;
@@ -8,40 +9,35 @@ use std::path::PathBuf;
 pub struct App {
     pub file_dialog: FileDialog,
     pub picked_file: Option<PathBuf>,
+    pub main_df: Option<polars::prelude::DataFrame>,
     pub data: Option<polars::prelude::DataFrame>,
     pub histogram: HistogramExample,
     pub show_graph: bool,
     pub is_processing: bool,
+    pub start_time: DateTime<Utc>,
+    pub end_time: DateTime<Utc>,
     pub group_id: u32,
+    pub max_group_id: u32,
 }
 
 impl App {
     pub fn new(_cc: &eframe::CreationContext) -> Self {
+        let time = chrono::Utc::now();
         Self {
             file_dialog: FileDialog::new(),
             picked_file: None,
+            main_df: None,
             data: None,
             show_graph: false,
             is_processing: false,
+            start_time: time.clone(),
+            end_time: time,
             histogram: HistogramExample::default(),
             group_id: 0,
+            max_group_id: 20,
         }
     }
     pub fn remake_bars(&mut self, group_id: u32) -> Result<(), PolarsError> {
-        let my_lit = lit(group_id);
-        println!("Literal type: {:?}", my_lit);
-
-        let sample = self
-            .data
-            .as_ref()
-            .unwrap()
-            .clone()
-            .column("group_id")?
-            .u32()?
-            .get(0);
-        println!("Sample value from column: {:?}", sample);
-        println!("Target group_id: {:?}", group_id);
-
         let filtered_df = self
             .data
             .as_ref()
@@ -54,21 +50,6 @@ impl App {
                     .eq(lit(group_id as u32)),
             )
             .collect()?;
-        dbg!(self.data.as_ref().unwrap().schema());
-        dbg!(self.data.as_ref().unwrap().column("group_id")?.unique()?);
-        dbg!(&filtered_df.schema());
-        println!("data height");
-        dbg!(
-            self.data
-                .as_ref()
-                .unwrap()
-                .clone()
-                .lazy()
-                .collect()?
-                .height()
-        );
-        println!("filtered data height");
-        dbg!(filtered_df.height());
         let price = filtered_df.column("price")?.f64()?;
         let amount = filtered_df.column("amount")?.f64()?;
         let color = filtered_df.column("color")?.str()?;
@@ -84,7 +65,6 @@ impl App {
                 Bar::new(p, s).fill(fill)
             })
             .collect();
-        dbg!(&bars);
         self.histogram.bars = bars;
         Ok(())
     }

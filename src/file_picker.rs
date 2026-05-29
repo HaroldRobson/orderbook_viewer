@@ -1,6 +1,9 @@
 use crate::app::App;
 use crate::graphs::HistogramExample;
 use crate::processor::process_file;
+use crate::timerange_picker;
+use chrono::DateTime;
+use chrono::NaiveTime;
 use eframe::egui;
 use egui_file_dialog::FileDialog;
 use polars::prelude::*;
@@ -28,11 +31,54 @@ impl eframe::App for App {
                             ParquetWriter::new(&mut file)
                                 .finish(&mut res.clone())
                                 .unwrap();
-                            self.data = Some(res);
+                            self.main_df = Some(res.clone());
+                            self.data = Some(res.clone());
+                            let start_time = DateTime::from_timestamp_micros(
+                                res.column("timestamp")
+                                    .unwrap()
+                                    .cast(&DataType::Time)
+                                    .unwrap()
+                                    .time()
+                                    .unwrap()
+                                    .get(0)
+                                    .unwrap(),
+                            )
+                            .unwrap();
+                            self.start_time = start_time;
                             self.is_processing = false;
+                            self.show_graph = true;
                         }
                         Err(e) => eprintln!("{:?}", e),
                     }
+                }
+
+                let tdp = timerange_picker::DateTimeRangePicker::new(
+                    &mut self.start_time,
+                    &mut self.end_time,
+                )
+                .ui(ui);
+                if ui.button("truncate").clicked() {
+                    self.data = Some(
+                        self.main_df
+                            .as_ref()
+                            .unwrap()
+                            .clone()
+                            .lazy()
+                            .filter(col("timestamp").gt_eq(lit(self.start_time.timestamp_micros())))
+                            .filter(col("timestamp").lt_eq(lit(self.end_time.timestamp_micros())))
+                            .collect()
+                            .unwrap(),
+                    );
+                    self.max_group_id = self
+                        .data
+                        .as_ref()
+                        .unwrap()
+                        .column("group_id")
+                        .unwrap()
+                        .u32()
+                        .unwrap()
+                        .max()
+                        .unwrap();
                 }
             }
 
@@ -45,7 +91,7 @@ impl eframe::App for App {
             if ui
                 .add_sized(
                     [800.0, 1.0],
-                    egui::Slider::new(&mut self.group_id, 0..=1000).text("My value"),
+                    egui::Slider::new(&mut self.group_id, 0..=self.max_group_id).text("My value"),
                 )
                 .changed()
             {
@@ -55,19 +101,20 @@ impl eframe::App for App {
                     Ok(_) => {}
                 }
             }
+            /*
+                        if ui.button("draw").clicked() {
+                            self.show_graph = true;
+                        }
 
-            if ui.button("draw").clicked() {
-                self.show_graph = true;
-            }
-
-            if ui.button("redraw").clicked() {
-                let e = self.remake_bars(3);
-                match e {
-                    Err(e) => eprintln!("{:?}", e),
-                    Ok(_) => {}
-                }
-                self.histogram.show_plot(ui);
-            }
+                        if ui.button("redraw").clicked() {
+                            let e = self.remake_bars(3);
+                            match e {
+                                Err(e) => eprintln!("{:?}", e),
+                                Ok(_) => {}
+                            }
+                            self.histogram.show_plot(ui);
+                        }
+            */
 
             if self.show_graph {
                 self.histogram.show_controls(ui);

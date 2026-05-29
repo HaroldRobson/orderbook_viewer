@@ -5,6 +5,7 @@ use egui_file_dialog::FileDialog;
 
 pub mod app;
 pub mod graphs;
+pub mod timerange_picker;
 use app::App;
 
 mod file_picker;
