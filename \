@@ -37,27 +37,13 @@ impl eframe::App for App {
                     ui.label("Processing data, please wait...");
                 });
             }
-            if ui
-                .add(egui::Slider::new(&mut self.group_id, 0..=10000).text("My value"))
-                .changed()
-            {
-                let e = self.remake_bars(self.group_id);
-                match e {
-                    Err(e) => eprintln!("{:?}", e),
-                    Ok(_) => {}
-                }
-            }
 
             if ui.button("draw").clicked() {
                 self.show_graph = true;
             }
 
             if ui.button("redraw").clicked() {
-                let e = self.remake_bars(3);
-                match e {
-                    Err(e) => eprintln!("{:?}", e),
-                    Ok(_) => {}
-                }
+                self.remake_bars(3);
                 self.histogram.show_plot(ui);
             }
 

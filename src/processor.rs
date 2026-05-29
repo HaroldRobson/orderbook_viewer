@@ -6,7 +6,7 @@ use anyhow::{Context, Result};
 use std::path::Path;
 use std::path::PathBuf;
 
-pub fn process_file<'a>(file_path: &'a Path) -> Result<PathBuf> {
+pub fn process_file<'a>(file_path: &'a Path) -> Result<DataFrame, PolarsError> {
     println!("began processing file");
     let lf = LazyFrame::scan_parquet(file_path, ScanArgsParquet::default())?;
 
@@ -20,7 +20,7 @@ pub fn process_file<'a>(file_path: &'a Path) -> Result<PathBuf> {
         .sort(["timestamp"], SortMultipleOptions::default())
         .with_column(
             when(col("side").eq(lit("bid")).or(col("side").eq(lit("Bid"))))
-                .then(lit("green"))
+                .then(true)
                 .otherwise(lit("red"))
                 .alias("color"),
         )
@@ -42,17 +42,7 @@ pub fn process_file<'a>(file_path: &'a Path) -> Result<PathBuf> {
                 .alias("group_id"),
         );
     println!("reached1");
-    match lf.collect() {
-        Ok(df) => {}
-        Err(e) => eprint!("{:?}", e),
-    };
-    println!("reached2");
+    lf.collect()
 
-    let output_name = format!("{}_processed.parquet", Uuid::new_v4());
-    let mut output_path = file_path.to_path_buf().clone();
-    output_path.set_file_name(output_name);
     //    processed_lf.sink_parquet(&output_path, ParquetWriteOptions::default())?;
-
-    println!("done");
-    Ok(output_path)
 }
